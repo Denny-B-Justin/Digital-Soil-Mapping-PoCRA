@@ -1,5 +1,6 @@
 '''
 Downlaod a shape (.shp) file to get the boundry details of the location you are looking to download.
+Create a Google Cloud account and autherize the Earth Engine before starting the process
 '''
 
 import ee, geemap
@@ -12,9 +13,9 @@ import json
 
 ee.Authenticate()
 print('authenticated')
-ee.Initialize(project='code-in-python-461408')
+ee.Initialize(project='<project code from GCP>')  #Replace with your Google Cloud project
 print('all good')
-shapefile_path = " location of your .shp file"
+shapefile_path = " location of your .shp file"    #Replace with your shape file location
 
 gdf = gpd.read_file(shapefile_path)
 if gdf.crs and gdf.crs.to_string() != 'EPSG:4326':
