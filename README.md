@@ -13,7 +13,7 @@ File: `mapping_dem.py`
 
 ### Step 5: Verify the mapped data with the provided calibration sample  
 We run the whole code again, but with the latitude and longitude values from the calibration table  
-File: `verify_dem_mapping.ipynb`
+File: `verify_dem_mapping.py`
 
 ---
 
