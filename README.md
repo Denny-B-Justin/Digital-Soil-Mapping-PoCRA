@@ -22,6 +22,7 @@ File: `point_all_value_extraction.py`
 ### Step 7: Extract the data for ground truth GeoJSON
 Since we wanted the weighted average of each parameter, match the DEM parameters with bounding box coordinates. The code contains data extraction for each bounding box.     
 File: ` `
+
 ---
 
 ## File Roles
