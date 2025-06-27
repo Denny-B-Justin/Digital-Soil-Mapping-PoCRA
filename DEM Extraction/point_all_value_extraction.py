@@ -206,7 +206,7 @@ if __name__ == "__main__":
 
     HGT_DIR = "% Folder location with multiple HGT files %"     # Folder that contains *.hgt   (change as needed)
 
-    out_df = batch_point_metrics(demo_points, hgt_folder=HGT_DIR)
+    out_df = batch_point_metrics(lat_long, hgt_folder=HGT_DIR)
 
     out_path = "point_metrics.csv"   # Final CSV that have metrices
     out_df.to_csv(out_path, index=False)
