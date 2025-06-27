@@ -1,7 +1,9 @@
 '''
 We have the ground truth data of 2000 locations. Since we cannot use locations directly, we will create a bounding box near each loaction with 30m resolution (half_size = 15m)
 After that we need to map our DEM data with this ground truth data to get the training dataset. 
-This is then verified by verify_dem_mapping.ipynb
+This is then verified by verify_dem_mapping.py
+
+### USE THE SAME CODE TO CONVERT CALIBRATION DATA TO GEOJSON
 '''
 
 import numpy as np
