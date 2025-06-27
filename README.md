@@ -16,7 +16,7 @@ We run the whole code again, but with the latitude and longitude values from the
 File: `verify_dem_mapping.py`
 
 ### Step 6: Extract the required data directly from the HGT files for point
-All the required data are extracted directly from HGT files. Contains code to extract data from each ground truth point (not bounding box). The final output exported as CSV which can be then used for ML modelling. 
+All the required data are extracted directly from HGT files. Contains code to extract data from each ground truth point (not bounding box). The final output exported as CSV which can be then used for ML modelling.
 File: `point_all_value_extraction.py` 
 
 ### Step 7: Extract the data for ground truth GeoJSON
