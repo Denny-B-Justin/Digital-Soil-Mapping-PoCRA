@@ -1,4 +1,5 @@
 '''
+Mapping the DEM data with Ground Truth GeoJSON.
 Here, we are mapping the DEM files with the ground truth values.
 Get the GeoJSON of the ground truth data from "bounding_box_geojson.py"
 DEM shape files for "contours", "elevation_zones", "slope_zones", and "peaks" are available at "data_extraction.py"
