@@ -93,3 +93,16 @@ if MAKE_STACK:
     print(f"9-band COG written → {stack_path}")
 
 print("Done.")
+
+# ── 4) Check the stack ────────────────────────────────────────────────
+with rasterio.open(stack_path) as src:
+    print(f"CRS: {src.crs}")
+    print(f"Number of bands: {src.count}")
+    print(f"Width x Height: {src.width} x {src.height}")
+    
+    all_bands = src.read()
+    print(f"Shape of array (bands, height, width): {all_bands.shape}")
+
+    for i in range(all_bands.shape[0]):
+        band_data = all_bands[i]
+        print(f"Band {i+1} → min: {band_data.min()}, max: {band_data.max()}, mean: {band_data.mean():.2f}")
