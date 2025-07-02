@@ -1,8 +1,6 @@
 '''
-
 Go to Worldclim website: https://www.worldclim.org/data/monthlywth.html
 Download all the required zip files that contain TIF files and place them in one folder.
-
 '''
 
 
