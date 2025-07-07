@@ -46,6 +46,7 @@ for tif in tif_files:
 
     # ── crop / mask the raster to the GT box ────────────────────
     with rasterio.open(tif) as src:
+        print(f"Processing {tif.name} with {len(band_names)} bands.")
         img, _ = mask(src, poly_geom, crop=True)
         assert img.shape[0] == len(band_names), \
                f"Band count mismatch in {tif.name}"
@@ -55,8 +56,8 @@ for tif in tif_files:
 
     # ── assemble row dict ───────────────────────────────────────
     row = {
-        "lat"     : gt_box.geometry.centroid.y,
-        "long"    : gt_box.geometry.centroid.x,
+        "lat"     : boxes_gdf.loc[idx, "lat"],   # to latitude and longitude match with the GeoJSON
+        "long"    : boxes_gdf.loc[idx, "long"],
         "geometry": gt_box.geometry,
         "source"  : tif.name               # keep provenance
     }
