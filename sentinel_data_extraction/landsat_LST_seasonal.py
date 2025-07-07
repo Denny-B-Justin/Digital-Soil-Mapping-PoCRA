@@ -1,7 +1,6 @@
 # ── Imports ────────────────────────────────────────────────────────────────
 import re
 import pathlib
-
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -65,9 +64,19 @@ for tif_path in sorted(DATA_DIR.glob("polygon_*.tif")):
 
     rows.append(row)
 
-# ── Build DataFrame & save ─────────────────────────────────────────────────
 df = pd.DataFrame(rows)
 
+# ── Check missing values ─────────────────────────────────────────────────
+arr = []
+for row in range(len(df.LST_rabi)):
+    if df['LST_rabi'][row] == 0:
+        arr.append(str(df['polygon_id'][row]))
+
+print("Number of missing values:", len(arr))
+print("Missing Values:", arr)
+print(len(arr))
+
+# ── Build DataFrame & save ─────────────────────────────────────────────────
 print("Result preview:")
 # print(df.head())
 
