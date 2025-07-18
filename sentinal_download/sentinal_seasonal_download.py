@@ -33,6 +33,30 @@ def _clean(geom, prec=5):
         return o
     return fix(mapping(geom))
 
+# ── ◆◆◆ ADD SPECTRAL INDICES FUNCTIONS ◆◆◆ ──────────────────────────────
+# These utilities leave the **original 9‑band extraction untouched**.
+# Indices are computed **after** the seasonal composite is ready but **before**
+# renaming, so downstream logic stays the same.
+# -------------------------------------------------------------------------
+
+def add_indices(img: ee.Image) -> ee.Image:
+    """Append NDVI, GNDVI, SAVI, TVI, EVI and BI to *img* and return it."""
+    red   = img.select("B4")   # Red
+    green = img.select("B3")   # Green
+    blue  = img.select("B2")   # Blue
+    nir   = img.select("B8")   # Near‑Infrared
+    swir  = img.select("B11")  # Short‑Wave Infrared
+
+    ndvi  = nir.subtract(red).divide(nir.add(red)).rename("NDVI")
+    gndvi = nir.subtract(green).divide(nir.add(green)).rename("GNDVI")
+    savi  = nir.subtract(red).multiply(1.5).divide(nir.add(red).add(0.5)).rename("SAVI")
+    tvi   = nir.subtract(red).multiply(120).subtract(green.subtract(red).multiply(200)).multiply(0.5).rename("TVI")
+    evi   = nir.subtract(red).multiply(2.5).divide(nir.add(red.multiply(6)).subtract(blue.multiply(7.5)).add(1)).rename("EVI")
+    bi    = swir.subtract(nir).divide(swir.add(nir)).rename("BI")
+
+    # return image with six extra bands appended at the end
+    return img.addBands([ndvi, gndvi, savi, tvi, evi, bi])
+
 # ── Load AOIs ─────────────────────────────────────────────────────────────
 gdf = gpd.read_file(GEOJSON_PATH).to_crs("EPSG:4326")
 
@@ -58,9 +82,19 @@ for idx, row in gdf.iterrows():
                 c = col(start,end,HLS_L30)
             yearly_means.append(c.mean().clip(geom_ee))
         season_img = ee.ImageCollection(yearly_means).mean()
-        renamed_bands = [f"{b}_{season}" for b in BANDS]
-        season_images.append(season_img.rename(renamed_bands))
+        # ── ▶▶ INSERTING SPECTRAL INDICES ◀◀ ──────────────────────────────
+        season_img = add_indices(season_img)
+        # ── ▲▲ INDICES ADDED (stay above this line) ▲▲ ──────────────────
 
+        # Dynamically fetch band order to avoid rename‑length mismatches
+        orig_names = season_img.bandNames().getInfo()  # Python list
+        renamed_bands = [f"{bn}_{season}" for bn in orig_names]
+
+        # Rename and store
+        season_img = season_img.rename(renamed_bands)
+        season_images.append(season_img)
+        band_names_master.extend(renamed_bands)
+        
     final_img = ee.Image.cat(season_images)
 
     # Set band names and save as JSON
