@@ -1,86 +1,49 @@
-# ── Imports ────────────────────────────────────────────────────────────────
-import re
-import pathlib
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-import rasterio
-from rasterio.mask import mask
+import pathlib, numpy as np, rasterio, pandas as pd
 
 # ── CONFIG ────────────────────────────────────────────────────────────────
-DATA_DIR   = pathlib.Path("TIF_LST")              # folder with polygon_*.tif
-BOXES_GJ   = "gt_point_boxes.geojson"                    # your GT boxes
-BAND_NAMES = ["LST_rabi", "LST_kharif", "LST_zaid"]       # expected band order
-BAND_STAT  = np.mean                                     # statistic to apply
+DATA_DIR   = pathlib.Path("TIF_LST")                # folder with polygon_*.tif
+CSV_OUT    = "lst_band_means.csv"                   # Excel‑friendly output
+BAND_NAMES = ["LST_rabi", "LST_kharif", "LST_zaid"] # expected band order
+SAVE_C     = False                                  # True → add *_C columns
+# -------------------------------------------------------------------------
 
-# ── LOAD ALL GT BOXES (in WGS-84) ─────────────────────────────────────────
-boxes_gdf = gpd.read_file(BOXES_GJ).to_crs("EPSG:4326")
+def f_to_c(f):          # °F → °C helper
+    return (f - 32.0) * (5.0 / 9.0)
 
-# ── Prepare storage for results ────────────────────────────────────────────
-rows = []
-F2C = lambda f: (f - 32.0) * (5.0/9.0)
-# ── Loop over each polygon_*.tif ───────────────────────────────────────────
-pattern = re.compile(r"polygon_(\d+)\.tif$")
-for tif_path in sorted(DATA_DIR.glob("polygon_*.tif")):
-    m = pattern.search(tif_path.name)
-    if not m:
-        print(f"⚠ Skipping {tif_path.name}: filename doesn’t match ‘polygon_#.tif’")
-        continue
+rows        = []        # one dict per file
+master_cols = None      # set once from the first file
 
-    idx = int(m.group(1))
-    if idx >= len(boxes_gdf):
-        print(f"⚠ No GT box #{idx} – skipping {tif_path.name}")
-        continue
-
-    # Get the ground-truth polygon for this index
-    gt_row   = boxes_gdf.iloc[idx]
-    geom     = [gt_row.geometry]
-
-    # Read & mask the raster
-    with rasterio.open(tif_path) as src:
-        print(f"Processing {tif_path.name} …")
-        # mask() returns an array of shape (bands, rows, cols)
-        img, _ = mask(src, geom, crop=True)
-        if img.shape[0] != len(BAND_NAMES):
+for tif in sorted(DATA_DIR.glob("polygon_*.tif")):
+    with rasterio.open(tif) as src:
+        if src.count != len(BAND_NAMES):
             raise ValueError(
-                f"Expected {len(BAND_NAMES)} bands, got {img.shape[0]} in {tif_path.name}"
+                f"{tif.name}: expected {len(BAND_NAMES)} bands, got {src.count}"
             )
 
-    # Compute per-band statistic
-    # reshape → (bands, n_pixels)
-    vals_f = BAND_STAT(img.reshape(img.shape[0], -1), axis=1)
-    # vals = BAND_STAT(img.reshape(img.shape[0], -1), axis=1)
-    vals_c = F2C(vals_f)
-    # Assemble result row
-    row = {
-        "polygon_id": idx,
-        "lat":        float(gt_row["lat"]),
-        "lon":        float(gt_row["long"]),
-        "source":     tif_path.name
-    }
-    # attach each season’s mean
-    for name, v in zip(BAND_NAMES, vals_f):
-        row[name] = float(v)
+        means_f = []
+        for i in range(1, src.count + 1):
+            arr = src.read(i).astype("float32").ravel()
+            arr = arr[~np.isnan(arr)]
+            means_f.append(float(np.nan if arr.size == 0 else arr.mean()))
+
+    # build row
+    row = {"source": tif.name}                 # filename becomes the ID
+    row.update(dict(zip(BAND_NAMES, means_f)))
+
+    if SAVE_C:
+        for k, v_f in zip(BAND_NAMES, means_f):
+            row[k.replace("LST", "LST_C")] = None if np.isnan(v_f) else f_to_c(v_f)
+
+    # remember canonical column order once
+    if master_cols is None:
+        master_cols = ["source"] + BAND_NAMES
+        if SAVE_C:
+            master_cols += [k.replace("LST", "LST_C") for k in BAND_NAMES]
 
     rows.append(row)
 
-df = pd.DataFrame(rows)
-
-# ── Check missing values ─────────────────────────────────────────────────
-arr = []
-for row in range(len(df.LST_rabi)):
-    if df['LST_rabi'][row] == 0:
-        arr.append(str(df['polygon_id'][row]))
-
-print("Number of missing values:", len(arr))
-print("Missing Values:", arr)
-print(len(arr))
-
-# ── Build DataFrame & save ─────────────────────────────────────────────────
-print("Result preview:")
-# print(df.head())
-
-# to CSV
-out_csv = "lst_seasonal_summary.csv"
-df.to_csv(out_csv, index=False)
+# ---- save as wide table --------------------------------------------------
+df = pd.DataFrame(rows)[master_cols]   # enforce column order
+df.to_csv(CSV_OUT, index=False)
+print(f"✔ Band‑mean LST table for {len(rows)} files written to {CSV_OUT}")
 df
